@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Realtime Agents Classroom",
+  title: "OpenAI Realtime Agent with Agents SDK",
   description:
-    "Best-practice OpenAI Realtime Agent demo that keeps the lesson plan intact while simplifying the codebase.",
+    "Sandbox Next.js application demonstrating OpenAI's Realtime Agent capabilities using the Agents SDK.",
 };
 
 export default function RootLayout({

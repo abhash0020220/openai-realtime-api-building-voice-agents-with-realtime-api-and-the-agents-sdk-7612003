@@ -1,5 +1,8 @@
 setopt prompt_subst
 
+# Human-friendly workspace label (display only)
+WORKSPACE_LABEL="exercise-files"
+
 workspace_root() {
   git rev-parse --show-toplevel 2>/dev/null
 }
@@ -7,7 +10,7 @@ workspace_root() {
 PROMPT='$( \
   ws=$(workspace_root); \
   if [[ -n "$ws" && "$PWD" == "$ws" ]]; then \
-    echo "~/${ws##*/}/"; \
+    echo "~/${WORKSPACE_LABEL}/"; \
   elif [[ -n "$ws" ]]; then \
     echo "~/…/${PWD##*/}/"; \
   else \
