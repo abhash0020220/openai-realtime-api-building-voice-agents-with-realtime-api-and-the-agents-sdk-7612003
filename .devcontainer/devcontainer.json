@@ -1,9 +1,7 @@
 {
   "customizations": {
     "codespaces": {
-      "openFiles": [
-        "README.md"
-      ]
+      "openFiles": ["README.md"]
     },
     "vscode": {
       // Set *default* container specific settings.json values on container create.
@@ -11,14 +9,25 @@
         "terminal.integrated.shell.linux": "/bin/bash"
       },
       // Add the IDs of extensions you want installed when the container is created.
-      "extensions": [
-        "linkedinlearning.linkedinlearning-vscode-theme"
-      ]
+      "extensions": ["linkedinlearning.linkedinlearning-vscode-theme"]
     }
   },
   // Update welcome text and set terminal prompt to '$ '
   "onCreateCommand": "echo PS1='\"$ \"' >> ~/.bashrc",
-  // Pull all branches
-  "postAttachCommand": "git pull --all"
+  // Install dependencies for the auth-server
+  "postCreateCommand": "cd auth-server && npm install && curl -LsSf https://astral.sh/uv/install.sh | sh",
+  // Forward port for the auth-server and make it public
+  "forwardPorts": [3000, 8000, 9307],
+  "portsAttributes": {
+    "3000": {
+      "label": "auth-server"
+    },
+    "8000": {
+      "label": "mcp-server"
+    },
+    "9307": {
+      "label": "app"
+    }
+  }
 }
 // DevContainer Reference: https://code.visualstudio.com/docs/remote/devcontainerjson-reference

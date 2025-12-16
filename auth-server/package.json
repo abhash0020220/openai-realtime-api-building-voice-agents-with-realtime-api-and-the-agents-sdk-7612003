@@ -1,0 +1,22 @@
+{
+  "name": "auth-server",
+  "version": "1.0.0",
+  "description": "Auth server to obtain an epehmeral token from the OpenAI SDK for use with the Realtime API",
+  "keywords": [
+    "openai",
+    "realtime",
+    "realtimeapi"
+  ],
+  "license": "MIT",
+  "author": "mor10",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
+  }
+}
