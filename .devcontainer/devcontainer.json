@@ -6,16 +6,25 @@
     "vscode": {
       // Set *default* container specific settings.json values on container create.
       "settings": {
-        "terminal.integrated.shell.linux": "/bin/bash"
+        "terminal.integrated.profiles.linux": {
+          "zsh (login)": {
+            "path": "zsh",
+            "args": [
+              "-l"
+            ]
+          }
+        },
+        "terminal.integrated.defaultProfile.linux": "zsh (login)"
       },
+      
       // Add the IDs of extensions you want installed when the container is created.
       "extensions": ["linkedinlearning.linkedinlearning-vscode-theme"]
     }
   },
-  // Update welcome text and set terminal prompt to '$ '
-  "onCreateCommand": "echo PS1='\"$ \"' >> ~/.bashrc",
+
   // Install dependencies for the auth-server
   "postCreateCommand": "cd auth-server && npm install && curl -LsSf https://astral.sh/uv/install.sh | sh",
+
   // Forward port for the auth-server and make it public
   "forwardPorts": [3000, 8000, 9307],
   "portsAttributes": {

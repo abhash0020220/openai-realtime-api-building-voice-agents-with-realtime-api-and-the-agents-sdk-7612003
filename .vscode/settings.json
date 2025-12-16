@@ -22,7 +22,7 @@
     "**/.course/**": true
   },
   "terminal.integrated.fontSize": 18,
-  "terminal.integrated.env.osx": {
+  "terminal.integrated.env.linux": {
     "ZDOTDIR": "${workspaceFolder}/.vscode/zsh"
   },
   "workbench.colorTheme": "LinkedIn Learning Dark",
