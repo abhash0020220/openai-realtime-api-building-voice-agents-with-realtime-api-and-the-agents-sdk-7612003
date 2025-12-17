@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Camera } from "lucide-react";
 
-import { CameraCapture } from "@/components/CameraCapture";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConnectionPanel } from "@/components/realtime/ConnectionPanel";
@@ -14,7 +12,7 @@ import { useRealtimeAgent, REALTIME_DEFAULTS } from "@/lib/useRealtimeAgent";
 
 export function RealtimeChat() {
   const [message, setMessage] = useState("");
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
+
   const hasGreetedRef = useRef(false);
 
   const {
@@ -54,7 +52,6 @@ export function RealtimeChat() {
   const handleConnectToggle = () => {
     if (isConnected) {
       disconnect();
-      setIsCameraOpen(false);
     } else {
       void connect();
     }
@@ -79,24 +76,10 @@ export function RealtimeChat() {
                   events={events}
                   isListening={isListening}
                   greetingText={REALTIME_DEFAULTS.greeting}
-                  bannedPhrases={config.bannedPhrases}
                 />
               )}
             </div>
             <div className="flex flex-col gap-3">
-              {isCameraOpen && (
-                <div className="rounded-lg border border-border/60 bg-muted/20 p-3">
-                  <CameraCapture
-                    disabled={!isConnected}
-                    onCapture={(dataUrl) => {
-                      if (!sessionRef.current) return;
-                      sessionRef.current.addImage(dataUrl, {
-                        triggerResponse: false,
-                      });
-                    }}
-                  />
-                </div>
-              )}
               <MessageInput
                 value={message}
                 placeholder="Type a text-only prompt here."
@@ -121,16 +104,6 @@ export function RealtimeChat() {
                   disabled={!isConnected}
                 >
                   Interrupt response
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsCameraOpen((value) => !value)}
-                  disabled={!isConnected}
-                  className="gap-2"
-                >
-                  <Camera size={16} />
-                  {isCameraOpen ? "Hide camera" : "Camera"}
                 </Button>
               </div>
             </div>

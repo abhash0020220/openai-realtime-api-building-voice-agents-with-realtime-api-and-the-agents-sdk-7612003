@@ -21,10 +21,12 @@ import {
   RealtimeSession,
   type RealtimeItem,
   type TransportEvent,
-  type RealtimeOutputGuardrail,
+
+  /**
+   * LESSON TASK:
+   * Import RealtimeOutputGuardrail type
+   */
 } from "@openai/agents/realtime";
-import { hostedMcpTool } from "@openai/agents";
-import { unitConversionTool } from "@/tools/unitConversionTool";
 
 /**
  * ============================================================================
@@ -85,8 +87,7 @@ const DEFAULT_AUTH_URL =
   process.env.NEXT_PUBLIC_AUTH_SERVER_URL ?? "http://localhost:3000/token";
 
 // Default instructions for the main agent. Instructions can be customized for each request.
-const DEFAULT_INSTRUCTIONS =
-  "You are a helpful voice assistant. If the user asks about unit conversions, use the provided tool to assist them. If they ask about weather, hand off to the Weather Agent and instruct it to use available tools to get weather data immediately.";
+const DEFAULT_INSTRUCTIONS = "You are a helpful voice assistant.";
 
 // Invisible message sent to the agent to trigger the first greeting.
 const DEFAULT_GREETING = "Hello! I am connected.";
@@ -105,6 +106,10 @@ const DEFAULT_VOICE = "cedar";
 // Default size of the event log to retain in state.
 const DEFAULT_EVENT_LOG_SIZE = 40;
 
+/**
+ * LESSON TASK:
+ * Review DEFAULT_BANNED_PHRASES
+ */
 // Array of banned phrases to block in agent output through guardrails.
 const DEFAULT_BANNED_PHRASES = [
   "chocolate-covered peanut butter",
@@ -128,27 +133,6 @@ export const REALTIME_DEFAULTS: RealtimeConfig = {
 
 /**
  * ============================================================================
- * SPECIALIST AGENTS
- * ============================================================================
- * Pre-configured agents for handling specific domains via handoff pattern.
- */
-
-// Weather specialist agent with MCP tool integration.
-const weatherAgent = new RealtimeAgent({
-  name: "Weather Agent",
-  handoffDescription: "Specialist agent for weather questions and forecasts",
-  instructions:
-    "You are a weather specialist. Use the openmeteo-weather MCP server to get current conditions and forecasts. Provide natural, conversational weather descriptions focusing on temperature, precipitation, and general conditions. Avoid overwhelming users with technical details like barometric pressure, wind speed in exact units, or humidity percentages unless specifically asked. Translate weather codes into plain language (e.g., 'sunny', 'partly cloudy', 'rainy'). Keep responses concise and helpful.",
-  tools: [
-    hostedMcpTool({
-      serverLabel: "openmeteo-weather",
-      serverUrl: "https://YOUR-CODESPACES-URL-8000.app.github.dev/mcp",
-    }),
-  ],
-});
-
-/**
- * ============================================================================
  * GUARDRAIL FACTORY
  * ============================================================================
  * Creates a guardrail that detects banned phrases in agent output.
@@ -158,32 +142,12 @@ const weatherAgent = new RealtimeAgent({
  * @returns Array of guardrail configurations
  * @link https://openai.github.io/openai-agents-js/guides/voice-agents/build/#guardrails
  */
-const createDefaultGuardrails = (
-  bannedPhrases: string[]
-): RealtimeOutputGuardrail[] => {
-  const normalized = bannedPhrases.map((phrase) => ({
-    original: phrase,
-    normalized: phrase.toLowerCase(),
-  }));
 
-  return [
-    {
-      name: "Banned phrase guardrail",
-      async execute({ agentOutput }) {
-        const lowerOutput = agentOutput.toLowerCase();
-        const match = normalized.find((phrase) =>
-          lowerOutput.includes(phrase.normalized)
-        );
-        return {
-          tripwireTriggered: Boolean(match),
-          outputInfo: {
-            bannedPhraseDetected: match?.original ?? null,
-          },
-        };
-      },
-    },
-  ];
-};
+/** LESSON TASK:
+ * Implement a guardrail that uses bannedPhrases from the configuration
+ * - Create a constant createDefaultGuardrails
+ * - Use the RealtimeOutputGuardrail type
+ */
 
 /**
  * ============================================================================
@@ -270,12 +234,15 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
    * MAIN AGENT AND SESSION SETUP
    * --------------------------------------------------------------------------
    */
+
+  /**
+   * LESSON TASK:
+   * Add outputGuardrails pointing back to createDefaultGuardrails.
+   */
   useEffect(() => {
     const agent = new RealtimeAgent({
       name: "Assistant",
       instructions: config.instructions,
-      tools: [unitConversionTool],
-      handoffs: [weatherAgent],
     });
 
     const session = new RealtimeSession(agent, {
@@ -285,21 +252,24 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
           output: { voice: config.voice },
         },
       },
-      outputGuardrails: createDefaultGuardrails(config.bannedPhrases),
     });
 
+    // Get reference to suppressed items set for use in event handlers.
     const suppressedItems = suppressedItemIdsRef.current;
 
     /**
      * Event handler: history_updated
      * Fires on every history change (user messages, agent responses, function calls).
-     * Filters out items suppressed by guardrails and updates component state.
      * Maintains an index map for efficient item lookups by ID.
+     */
+
+    /** LESSON TASK:
+     * Omit supressedItems from history remove guardrail-tripped items from the chat.
      */
     const handleHistoryUpdated = (updatedHistory: RealtimeItem[]) => {
       const filtered = updatedHistory.filter((item) => {
         const id = (item as { itemId?: string }).itemId;
-        return !id || !suppressedItems.has(id);
+        return true;
       });
       setHistory(filtered);
       const idx = new Map<string, number>();
@@ -420,6 +390,11 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
     };
 
     /**
+     * LESSON TASK:
+     * Review handleGuardrailTripped implementation below:
+     */
+
+    /**
      * Event handler: guardrail_tripped
      * Responds to guardrail violations by:
      * - Interrupting current response
@@ -472,14 +447,24 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
     session.on("history_updated", handleHistoryUpdated);
     session.on("transport_event", handleTransportEvent);
     session.on("error", handleError);
-    session.on("guardrail_tripped", handleGuardrailTripped);
+
+    /**
+     * LESSON TASK:
+     * Attach guardrail_tripped event handler
+     * On event, call handleGuardrailTripped
+     */
 
     // Cleanup function: detach listeners, close session, clear refs
     return () => {
       session.off("history_updated", handleHistoryUpdated);
       session.off("transport_event", handleTransportEvent);
       session.off("error", handleError);
-      session.off("guardrail_tripped", handleGuardrailTripped);
+
+      /**
+       * LESSON TASK:
+       * Detach guardrail_tripped event handler using session.off
+       */
+
       session.close();
       sessionRef.current = null;
       suppressedItems.clear();
