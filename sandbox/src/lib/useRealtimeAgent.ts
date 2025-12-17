@@ -16,15 +16,13 @@ import {
   useState,
   type RefObject,
 } from "react";
-import {
-  RealtimeAgent,
-  RealtimeSession,
-  type RealtimeItem,
-  type TransportEvent,
-  type RealtimeOutputGuardrail,
-} from "@openai/agents/realtime";
-import { hostedMcpTool } from "@openai/agents";
-import { unitConversionTool } from "@/tools/unitConversionTool";
+
+/**
+ * LESSON TASK:
+ *
+ * Import RealtimeItem and TransportEvent from @openai/agents/realtime
+ */
+import { RealtimeAgent, RealtimeSession } from "@openai/agents/realtime";
 
 /**
  * ============================================================================
@@ -55,6 +53,12 @@ export type ConnectionState = "idle" | "connecting" | "connected";
  * Return value from useRealtimeAgent hook.
  * Provides controls, state, and data for managing the realtime session.
  */
+
+/**
+ * LESSON TASK:
+ *
+ * Add events to the hook result
+ */
 export type UseRealtimeAgentResult = {
   connect: () => Promise<void>;
   disconnect: () => void;
@@ -65,10 +69,7 @@ export type UseRealtimeAgentResult = {
   isConnected: boolean;
   isConnecting: boolean;
   isMuted: boolean;
-  isListening: boolean;
   error: string | null;
-  history: RealtimeItem[];
-  events: TransportEvent[];
   sessionRef: RefObject<RealtimeSession | null>;
   config: RealtimeConfig;
 };
@@ -85,8 +86,7 @@ const DEFAULT_AUTH_URL =
   process.env.NEXT_PUBLIC_AUTH_SERVER_URL ?? "http://localhost:3000/token";
 
 // Default instructions for the main agent. Instructions can be customized for each request.
-const DEFAULT_INSTRUCTIONS =
-  "You are a helpful voice assistant. If the user asks about unit conversions, use the provided tool to assist them. If they ask about weather, hand off to the Weather Agent and instruct it to use available tools to get weather data immediately.";
+const DEFAULT_INSTRUCTIONS = "You are a helpful voice assistant.";
 
 // Invisible message sent to the agent to trigger the first greeting.
 const DEFAULT_GREETING = "Hello! I am connected.";
@@ -128,65 +128,6 @@ export const REALTIME_DEFAULTS: RealtimeConfig = {
 
 /**
  * ============================================================================
- * SPECIALIST AGENTS
- * ============================================================================
- * Pre-configured agents for handling specific domains via handoff pattern.
- */
-
-// Weather specialist agent with MCP tool integration.
-const weatherAgent = new RealtimeAgent({
-  name: "Weather Agent",
-  handoffDescription: "Specialist agent for weather questions and forecasts",
-  instructions:
-    "You are a weather specialist. Use the openmeteo-weather MCP server to get current conditions and forecasts. Provide natural, conversational weather descriptions focusing on temperature, precipitation, and general conditions. Avoid overwhelming users with technical details like barometric pressure, wind speed in exact units, or humidity percentages unless specifically asked. Translate weather codes into plain language (e.g., 'sunny', 'partly cloudy', 'rainy'). Keep responses concise and helpful.",
-  tools: [
-    hostedMcpTool({
-      serverLabel: "openmeteo-weather",
-      serverUrl: "https://YOUR-CODESPACES-URL-8000.app.github.dev/mcp",
-    }),
-  ],
-});
-
-/**
- * ============================================================================
- * GUARDRAIL FACTORY
- * ============================================================================
- * Creates a guardrail that detects banned phrases in agent output.
- * When triggered, the response is interrupted and removed from history.
- *
- * @param bannedPhrases - Array of phrases to block (case-insensitive)
- * @returns Array of guardrail configurations
- * @link https://openai.github.io/openai-agents-js/guides/voice-agents/build/#guardrails
- */
-const createDefaultGuardrails = (
-  bannedPhrases: string[]
-): RealtimeOutputGuardrail[] => {
-  const normalized = bannedPhrases.map((phrase) => ({
-    original: phrase,
-    normalized: phrase.toLowerCase(),
-  }));
-
-  return [
-    {
-      name: "Banned phrase guardrail",
-      async execute({ agentOutput }) {
-        const lowerOutput = agentOutput.toLowerCase();
-        const match = normalized.find((phrase) =>
-          lowerOutput.includes(phrase.normalized)
-        );
-        return {
-          tripwireTriggered: Boolean(match),
-          outputInfo: {
-            bannedPhraseDetected: match?.original ?? null,
-          },
-        };
-      },
-    },
-  ];
-};
-
-/**
- * ============================================================================
  * AUTHENTICATION HELPER
  * ============================================================================
  * Fetches ephemeral tokens from the auth server for secure API access.
@@ -222,11 +163,6 @@ async function fetchRealtimeToken(authUrl: string) {
  */
 function resetRealtimeSession(session: RealtimeSession | null) {
   if (!session) return;
-  try {
-    session.updateHistory([]);
-  } catch {
-    // ignore failures from partially open sessions
-  }
   session.close();
 }
 
@@ -255,27 +191,27 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
    * Refs and state hooks for tracking session, history, events, and UI state.
    */
   const sessionRef = useRef<RealtimeSession | null>(null);
-  const [history, setHistory] = useState<RealtimeItem[]>([]);
-  const [events, setEvents] = useState<TransportEvent[]>([]);
+
+  /**
+   * LESSON TASK:
+   *
+   * Add state for events using the state of the TransportEvent type
+   */
   const [error, setError] = useState<string | null>(null);
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("idle");
   const [isMuted, setIsMuted] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const suppressedItemIdsRef = useRef<Set<string>>(new Set());
-  const historyIndexRef = useRef<Map<string, number>>(new Map());
 
   /**
    * --------------------------------------------------------------------------
    * MAIN AGENT AND SESSION SETUP
    * --------------------------------------------------------------------------
    */
+
   useEffect(() => {
     const agent = new RealtimeAgent({
       name: "Assistant",
       instructions: config.instructions,
-      tools: [unitConversionTool],
-      handoffs: [weatherAgent],
     });
 
     const session = new RealtimeSession(agent, {
@@ -285,30 +221,7 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
           output: { voice: config.voice },
         },
       },
-      outputGuardrails: createDefaultGuardrails(config.bannedPhrases),
     });
-
-    const suppressedItems = suppressedItemIdsRef.current;
-
-    /**
-     * Event handler: history_updated
-     * Fires on every history change (user messages, agent responses, function calls).
-     * Filters out items suppressed by guardrails and updates component state.
-     * Maintains an index map for efficient item lookups by ID.
-     */
-    const handleHistoryUpdated = (updatedHistory: RealtimeItem[]) => {
-      const filtered = updatedHistory.filter((item) => {
-        const id = (item as { itemId?: string }).itemId;
-        return !id || !suppressedItems.has(id);
-      });
-      setHistory(filtered);
-      const idx = new Map<string, number>();
-      filtered.forEach((item, index) => {
-        const id = (item as { itemId?: string }).itemId;
-        if (id) idx.set(id, index);
-      });
-      historyIndexRef.current = idx;
-    };
 
     /**
      * Event handler: transport_event
@@ -320,66 +233,14 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
      * - Updates speech detection state
      * - Maintains conversation item lifecycle (created/updated/completed/deleted)
      */
-    const handleTransportEvent = (event: TransportEvent) => {
-      if (
-        event.type !== "response.output_audio_transcript.delta" &&
-        event.type !== "response.input_audio_transcription.delta"
-      ) {
-        console.log("Realtime Event:", event);
-      }
 
-      setEvents((prev) => {
-        const next = [...prev, event];
-        if (next.length > config.eventLogSize) {
-          return next.slice(next.length - config.eventLogSize);
-        }
-        return next;
-      });
-
-      if (event.type === "input_audio_buffer.speech_started") {
-        setIsListening(true);
-      }
-      if (event.type === "input_audio_buffer.speech_stopped") {
-        setIsListening(false);
-      }
-
-      if (event.type === "conversation.item.created" && event.item) {
-        const item = event.item as RealtimeItem;
-        const id = (item as { itemId?: string }).itemId;
-        if (id && suppressedItems.has(id)) return;
-        setHistory((prev) => [...prev, item]);
-      }
-
-      if (
-        (event.type === "conversation.item.updated" ||
-          event.type === "conversation.item.completed") &&
-        event.item
-      ) {
-        const item = event.item as RealtimeItem;
-        const id = (item as { itemId?: string }).itemId;
-        if (id && suppressedItems.has(id)) return;
-        setHistory((prev) => {
-          const idx = prev.findIndex(
-            (i) => (i as { itemId?: string }).itemId === id
-          );
-          if (idx !== -1) {
-            const next = [...prev];
-            next[idx] = item;
-            return next;
-          }
-          return [...prev, item];
-        });
-      }
-
-      if (event.type === "conversation.item.deleted" && event.item) {
-        const item = event.item as RealtimeItem;
-        const id = (item as { itemId?: string }).itemId;
-        if (!id) return;
-        setHistory((prev) =>
-          prev.filter((i) => (i as { itemId?: string }).itemId !== id)
-        );
-      }
-    };
+    /**
+     * LESSON TASK:
+     *
+     * Implement handleTransportEvent to:
+     * - Log all events except transcript deltas
+     * - Update isListening state on speech_started and speech_stopped events
+     */
 
     /**
      * Event handler: error
@@ -419,71 +280,27 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
       }
     };
 
-    /**
-     * Event handler: guardrail_tripped
-     * Responds to guardrail violations by:
-     * - Interrupting current response
-     * - Muting the agent
-     * - Removing offending item from history
-     * - Displaying error to user
-     */
-    const handleGuardrailTripped = (...args: unknown[]) => {
-      try {
-        session.interrupt();
-        setIsMuted(true);
-      } catch {
-        // ignore
-      }
-
-      try {
-        const details = args[3] as { itemId?: string } | undefined;
-        const offendingId = details?.itemId;
-        if (offendingId) {
-          suppressedItems.add(offendingId);
-          setHistory((prev) =>
-            prev.filter((item) => {
-              const id = (item as { itemId?: string }).itemId;
-              return id !== offendingId;
-            })
-          );
-
-          const cleanedHistory = (session.history ?? []).filter((item) => {
-            const id = (item as { itemId?: string }).itemId;
-            return id !== offendingId;
-          });
-          const idxMap = new Map<string, number>();
-          cleanedHistory.forEach((item, index) => {
-            const id = (item as { itemId?: string }).itemId;
-            if (id) idxMap.set(id, index);
-          });
-          historyIndexRef.current = idxMap;
-          session.updateHistory(cleanedHistory as RealtimeItem[]);
-        }
-      } catch (err) {
-        console.warn("Failed to remove offending item after guardrail", err);
-      }
-
-      setError("Response blocked by guardrails.");
-    };
-
     // Store session reference and attach event listeners
     sessionRef.current = session;
 
-    session.on("history_updated", handleHistoryUpdated);
-    session.on("transport_event", handleTransportEvent);
+    /**
+     * LESSON TASK:
+     *
+     * Attach event listeners for transport_event to call handleTransportEvent
+     */
+
     session.on("error", handleError);
-    session.on("guardrail_tripped", handleGuardrailTripped);
 
     // Cleanup function: detach listeners, close session, clear refs
+    /**
+     * LESSON TASK:
+     *
+     * Detach event transport_event listener on session.off
+     */
     return () => {
-      session.off("history_updated", handleHistoryUpdated);
-      session.off("transport_event", handleTransportEvent);
       session.off("error", handleError);
-      session.off("guardrail_tripped", handleGuardrailTripped);
       session.close();
       sessionRef.current = null;
-      suppressedItems.clear();
-      historyIndexRef.current.clear();
     };
   }, [config]);
 
@@ -500,10 +317,14 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
   const disconnect = useCallback(() => {
     if (!sessionRef.current) return;
     resetRealtimeSession(sessionRef.current);
-    setHistory([]);
-    setEvents([]);
+
+    /**
+     * LESSON TASK:
+     *
+     * Reset events state on disconnect
+     */
+
     setIsMuted(false);
-    setIsListening(false);
     setError(null);
     setConnectionState("idle");
   }, []);
@@ -577,6 +398,12 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
    * --------------------------------------------------------------------------
    * Exposes all controls, state, and session data to consuming components.
    */
+
+  /**
+   * LESSON TASK:
+   *
+   * Return events in the hook result
+   */
   return {
     connect,
     disconnect,
@@ -587,10 +414,7 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
     isConnected: connectionState === "connected",
     isConnecting: connectionState === "connecting",
     isMuted,
-    isListening,
     error,
-    history,
-    events,
     sessionRef,
     config,
   };
