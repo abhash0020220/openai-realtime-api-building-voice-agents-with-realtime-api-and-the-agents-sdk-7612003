@@ -16,6 +16,7 @@ import {
   useState,
   type RefObject,
 } from "react";
+
 import {
   RealtimeAgent,
   RealtimeSession,
@@ -23,8 +24,11 @@ import {
   type TransportEvent,
   type RealtimeOutputGuardrail,
 } from "@openai/agents/realtime";
-import { hostedMcpTool } from "@openai/agents";
-import { unitConversionTool } from "@/tools/unitConversionTool";
+
+/**
+ * LESSON TASK:
+ * Import unitConversionTool from tools/unitConversionTool.ts
+ */
 
 /**
  * ============================================================================
@@ -84,9 +88,12 @@ export type UseRealtimeAgentResult = {
 const DEFAULT_AUTH_URL =
   process.env.NEXT_PUBLIC_AUTH_SERVER_URL ?? "http://localhost:3000/token";
 
+/**
+ * LESSON TASK:
+ * Update the DEFAULT_INSTRUCTIONS to include a note about using the provided tool for unit conversion.
+ */
 // Default instructions for the main agent. Instructions can be customized for each request.
-const DEFAULT_INSTRUCTIONS =
-  "You are a helpful voice assistant. If the user asks about unit conversions, use the provided tool to assist them. If they ask about weather, hand off to the Weather Agent and instruct it to use available tools to get weather data immediately.";
+const DEFAULT_INSTRUCTIONS = "You are a helpful voice assistant.";
 
 // Invisible message sent to the agent to trigger the first greeting.
 const DEFAULT_GREETING = "Hello! I am connected.";
@@ -132,20 +139,6 @@ export const REALTIME_DEFAULTS: RealtimeConfig = {
  * ============================================================================
  * Pre-configured agents for handling specific domains via handoff pattern.
  */
-
-// Weather specialist agent with MCP tool integration.
-const weatherAgent = new RealtimeAgent({
-  name: "Weather Agent",
-  handoffDescription: "Specialist agent for weather questions and forecasts",
-  instructions:
-    "You are a weather specialist. Use the openmeteo-weather MCP server to get current conditions and forecasts. Provide natural, conversational weather descriptions focusing on temperature, precipitation, and general conditions. Avoid overwhelming users with technical details like barometric pressure, wind speed in exact units, or humidity percentages unless specifically asked. Translate weather codes into plain language (e.g., 'sunny', 'partly cloudy', 'rainy'). Keep responses concise and helpful.",
-  tools: [
-    hostedMcpTool({
-      serverLabel: "openmeteo-weather",
-      serverUrl: "https://YOUR-CODESPACES-URL-8000.app.github.dev/mcp",
-    }),
-  ],
-});
 
 /**
  * ============================================================================
@@ -270,12 +263,15 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
    * MAIN AGENT AND SESSION SETUP
    * --------------------------------------------------------------------------
    */
+
   useEffect(() => {
+    /**
+     * LESSON TASK:
+     * Add unitConversionTool to the agent's available tools.
+     */
     const agent = new RealtimeAgent({
       name: "Assistant",
       instructions: config.instructions,
-      tools: [unitConversionTool],
-      handoffs: [weatherAgent],
     });
 
     const session = new RealtimeSession(agent, {
