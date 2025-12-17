@@ -8,7 +8,7 @@ This project requires [uv](https://docs.astral.sh/uv/getting-started/installatio
 #### MacOS / Linux:
 Use curl to download the script and execute it with sh:
 
-```bash
+```sh
 curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
@@ -19,23 +19,39 @@ Use irm to download the script and execute it with iex:
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 ```
   
+## Run the MCP server using GitHub Codespaces
+
+### 1. Sync the uv dependencies
+
+In terminal:
+```sh
+uv sync
+```
+
+### 2. Start the MCP server
+
+### 4. Run MCP server
+
+```sh
+uv run mcp_open_meteo/server.py
+```
 ## Development
 
 ### 1. Set up the uv environment
 
 In terminal:
-```bash
+```sh
 uv sync
 ```
 ### 2. Start the virtual environment
 
 In terminal:
-```bash
+```sh
 source .venv/bin/activate
 ```
 
 NOTE: To stop the virtual environment:
-```bash
+```sh
 deactivate
 ```
 
@@ -47,7 +63,7 @@ deactivate
 
 ### 4. Run MCP server
 
-```bash
+```sh
 uv run mcp_open_meteo/server.py
 ```
 
@@ -58,7 +74,7 @@ This starts the server at localhost:8000 (or the equivalent GitHub Codespaces UR
 1. In GitHub Codespaces, go to PORTs and find the URL to the MCP server
 2. Open a separate terminal
 3. Run the following command, replacing `random-github-url` with the prefix of the MCP URL while leaving the port numbers `6274` and `6277` and `.app.github.dev` in place:
-  ```bash
+  ```sh
   ALLOWED_ORIGINS=https://random-github-uri-6274.app.github.dev,https://random-github-uri-6277.app.github.dev npx @modelcontextprotocol/inspector
   ```
   This spins up two new URLs on ports `6274` and `6277`. Go to the __PORTS__ tab, right click each new port, and change __Port Visibility__ to __Public__.
@@ -108,7 +124,7 @@ You can test the MCP server using a local instance of the MCP Inspector even whe
 ### Automatic install
 
 In terminal:
-```bash
+```sh
 uv run mcp install mcp_open_meteo/server.py
 ```
 
@@ -123,11 +139,11 @@ uv run mcp install mcp_open_meteo/server.py
 2. Find the full path to `uv`:
   
   - MacOS / Linux:
-  ```bash
+  ```sh
   which uv
   ```
   - Windows:
-  ```bash
+  ```sh
   where uv
   ```
 
