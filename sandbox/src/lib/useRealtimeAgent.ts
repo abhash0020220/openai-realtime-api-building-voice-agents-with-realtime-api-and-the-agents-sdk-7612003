@@ -20,9 +20,13 @@ import {
 /**
  * LESSON TASK:
  *
- * Import RealtimeItem and TransportEvent from @openai/agents/realtime
+ * - Import RealtimeItem type for conversation history.
  */
-import { RealtimeAgent, RealtimeSession } from "@openai/agents/realtime";
+import {
+  RealtimeAgent,
+  RealtimeSession,
+  type TransportEvent,
+} from "@openai/agents/realtime";
 
 /**
  * ============================================================================
@@ -57,7 +61,8 @@ export type ConnectionState = "idle" | "connecting" | "connected";
 /**
  * LESSON TASK:
  *
- * Add events to the hook result
+ * - Add isListening boolean to track if the agent is currently listening for audio input.
+ * - Add history of RealtimeItem[] to track the conversation history.
  */
 export type UseRealtimeAgentResult = {
   connect: () => Promise<void>;
@@ -70,6 +75,7 @@ export type UseRealtimeAgentResult = {
   isConnecting: boolean;
   isMuted: boolean;
   error: string | null;
+  events: TransportEvent[];
   sessionRef: RefObject<RealtimeSession | null>;
   config: RealtimeConfig;
 };
@@ -163,6 +169,12 @@ async function fetchRealtimeToken(authUrl: string) {
  */
 function resetRealtimeSession(session: RealtimeSession | null) {
   if (!session) return;
+  /**
+   * LESSON TASK:
+   *
+   * Call session.updateHistory with an empty array to clear history.
+   */
+
   session.close();
 }
 
@@ -190,13 +202,17 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
    * --------------------------------------------------------------------------
    * Refs and state hooks for tracking session, history, events, and UI state.
    */
-  const sessionRef = useRef<RealtimeSession | null>(null);
 
   /**
    * LESSON TASK:
    *
-   * Add state for events using the state of the TransportEvent type
+   * - Add history state to track RealtimeItem[] conversation history.
+   * - Add isListening state to track if the agent is currently listening for audio input.
+   * - Add historyIndexRef to maintain an index map of item IDs to their positions in history.
+   * - Add suppressedItemIdsRef to track IDs of items to suppress from history.
    */
+  const sessionRef = useRef<RealtimeSession | null>(null);
+  const [events, setEvents] = useState<TransportEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("idle");
@@ -224,6 +240,26 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
     });
 
     /**
+     * LESSON TASK:
+     *
+     *  Get reference to suppressed items set for use in event handlers.
+     */
+
+    /**
+     * Event handler: history_updated
+     * Fires on every history change (user messages, agent responses, function calls).
+     * Maintains an index map for efficient item lookups by ID.
+     */
+
+    /**
+     * LESSON TASK:
+     *
+     * - Implement handleHistoryUpdated to update history state.
+     * - Filter out suppressed items from history.
+     * - Update historyIndexRef with current item ID to index mappings.
+     */
+
+    /**
      * Event handler: transport_event
      * Processes Realtime server events.
      * @link https://platform.openai.com/docs/api-reference/realtime-server-events
@@ -233,14 +269,71 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
      * - Updates speech detection state
      * - Maintains conversation item lifecycle (created/updated/completed/deleted)
      */
+    const handleTransportEvent = (event: TransportEvent) => {
+      if (
+        event.type !== "response.output_audio_transcript.delta" &&
+        event.type !== "response.input_audio_transcription.delta"
+      ) {
+        console.log("Realtime Event:", event);
+      }
 
-    /**
-     * LESSON TASK:
-     *
-     * Implement handleTransportEvent to:
-     * - Log all events except transcript deltas
-     * - Update isListening state on speech_started and speech_stopped events
-     */
+      setEvents((prev) => {
+        const next = [...prev, event];
+        if (next.length > config.eventLogSize) {
+          return next.slice(next.length - config.eventLogSize);
+        }
+        return next;
+      });
+
+      /**
+       * LESSON TASK:
+       *
+       * Update isListening state based on speech_started and speech_stopped events.
+       */
+
+      /**
+       * LESSON TASK:
+       *
+       * Uncomment and inspect the following setup for maintaining conversation
+       * items in history based on server events.
+       */
+      // if (event.type === "conversation.item.created" && event.item) {
+      //   const item = event.item as RealtimeItem;
+      //   const id = (item as { itemId?: string }).itemId;
+      //   if (id && suppressedItems.has(id)) return;
+      //   setHistory((prev) => [...prev, item]);
+      // }
+
+      // if (
+      //   (event.type === "conversation.item.updated" ||
+      //     event.type === "conversation.item.completed") &&
+      //   event.item
+      // ) {
+      //   const item = event.item as RealtimeItem;
+      //   const id = (item as { itemId?: string }).itemId;
+      //   if (id && suppressedItems.has(id)) return;
+      //   setHistory((prev) => {
+      //     const idx = prev.findIndex(
+      //       (i) => (i as { itemId?: string }).itemId === id
+      //     );
+      //     if (idx !== -1) {
+      //       const next = [...prev];
+      //       next[idx] = item;
+      //       return next;
+      //     }
+      //     return [...prev, item];
+      //   });
+      // }
+
+      // if (event.type === "conversation.item.deleted" && event.item) {
+      //   const item = event.item as RealtimeItem;
+      //   const id = (item as { itemId?: string }).itemId;
+      //   if (!id) return;
+      //   setHistory((prev) =>
+      //     prev.filter((i) => (i as { itemId?: string }).itemId !== id)
+      //   );
+      // }
+    };
 
     /**
      * Event handler: error
@@ -286,18 +379,22 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
     /**
      * LESSON TASK:
      *
-     * Attach event listeners for transport_event to call handleTransportEvent
+     * - Attach event listeners for history_updated calling handleHistoryUpdated.
      */
-
+    session.on("transport_event", handleTransportEvent);
     session.on("error", handleError);
 
     // Cleanup function: detach listeners, close session, clear refs
+
     /**
      * LESSON TASK:
      *
-     * Detach event transport_event listener on session.off
+     * - Detach history_updated listener.
+     * - Clear history and index refs.
+     * - Clear suppressed items ref.
      */
     return () => {
+      session.off("transport_event", handleTransportEvent);
       session.off("error", handleError);
       session.close();
       sessionRef.current = null;
@@ -314,16 +411,17 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
   /**
    * Disconnects the session and resets all state to initial values.
    */
+
+  /**
+   * LESSON TASK:
+   *
+   * - Clear history state on disconnect.
+   * - Reset isListening state on disconnect.
+   */
   const disconnect = useCallback(() => {
     if (!sessionRef.current) return;
     resetRealtimeSession(sessionRef.current);
-
-    /**
-     * LESSON TASK:
-     *
-     * Reset events state on disconnect
-     */
-
+    setEvents([]);
     setIsMuted(false);
     setError(null);
     setConnectionState("idle");
@@ -402,7 +500,7 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
   /**
    * LESSON TASK:
    *
-   * Return events in the hook result
+   * - Include isListening and history in the returned object.
    */
   return {
     connect,
@@ -415,6 +513,7 @@ export function useRealtimeAgent(): UseRealtimeAgentResult {
     isConnecting: connectionState === "connecting",
     isMuted,
     error,
+    events,
     sessionRef,
     config,
   };
