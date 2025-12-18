@@ -1,7 +1,11 @@
-# COURSENAME
-This is the repository for the LinkedIn Learning course `course-name`. The full course is available from [LinkedIn Learning][lil-course-url].
+# OpenAI Realtime API: Building Voice Agents with Realtime API and the Agents SDK
+This is the repository for the LinkedIn Learning course `OpenAI Realtime API: Building Voice Agents with Realtime API and the Agents SDK`. The full course is available from [LinkedIn Learning][lil-course-url].
 
 ![course-name-alt-text][lil-thumbnail-url] 
+
+## Course Description
+
+Build voice-to-voice, text-to-voice, and image-to-voice AI agents with OpenAI’s Realtime API and the Agents SDK. In this course, you’ll explore how the Realtime API works, how to build realtime voice agent apps using the Agents SDK, and how to enable advanced features including guardrails, function calling, MCP servers, and live image input via device camera. You’ll also learn how to authenticate front-end apps using a custom auth server and ephemeral tokens.
 
 _See the readme file in the main branch for updated instructions and information._
 ## Instructions
@@ -22,15 +26,9 @@ To resolve this issue:
     Add changes to git using this command: git add .
 	Commit changes using this command: git commit -m "some message"
 
-## Installing
-1. To use these exercise files, you must have the following installed:
-	- [list of requirements for course]
-2. Clone this repository into your local machine using the terminal (Mac), CMD (Windows), or a GUI tool like SourceTree.
-3. [Course-specific instructions]
-
 
 [0]: # (Replace these placeholder URLs with actual course URLs)
 
 [lil-course-url]: https://www.linkedin.com/learning/
-[lil-thumbnail-url]: https://media.licdn.com/dms/image/v2/D4E0DAQG0eDHsyOSqTA/learning-public-crop_675_1200/B4EZVdqqdwHUAY-/0/1741033220778?e=2147483647&v=beta&t=FxUDo6FA8W8CiFROwqfZKL_mzQhYx9loYLfjN-LNjgA
+[lil-thumbnail-url]: https://media.licdn.com/dms/image/v2/D4E0DAQGp2g0xLdNb4Q/learning-public-crop_675_1200/B4EZsuM5GMIQAY-/0/1766006690459?e=2147483647&v=beta&t=75EOlCXPTd2yX3uVC5C50SQagbooxWHwk-KUTbtjLXI
 
